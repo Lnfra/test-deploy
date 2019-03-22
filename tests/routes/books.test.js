@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const { sequelize } = require("../../models");
-const createAuthorsAndBooks = require("../../seed")
+const createAuthorsAndBooks = require("../../seed");
 
 const route = (params = "") => {
   const path = "/api/v1/books";
@@ -14,7 +14,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await sequelize.close()
+  await sequelize.close();
 });
 
 describe("Books", () => {
@@ -67,17 +67,26 @@ describe("Books", () => {
     });
 
     test("returns books matching the author query", () => {
+      const expectedBooks = [
+        { id: "1", title: "Animal Farm", author: { name: "George Orwell" } },
+        { id: "2", title: "1984", author: { name: "George Orwell" } },
+        {
+          id: "3",
+          title: "Homage to Catalonia",
+          author: { name: "George Orwell" }
+        },
+        {
+          id: "4",
+          title: "The Road to Wigan Pier",
+          author: { name: "George Orwell" }
+        }
+      ];
       return request(app)
         .get(route())
         .query({ author: "George Orwell" })
         .expect("content-type", /json/)
         .expect(200)
-        .expect([
-          { id: "1", title: "Animal Farm", author: "George Orwell" },
-          { id: "2", title: "1984", author: "George Orwell" },
-          { id: "3", title: "Homage to Catalonia", author: "George Orwell" },
-          { id: "4", title: "The Road to Wigan Pier", author: "George Orwell" }
-        ]);
+        .then(res => verifyBooks(res, expectedBooks));
     });
   });
 

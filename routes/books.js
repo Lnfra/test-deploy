@@ -4,10 +4,6 @@ const router = express.Router();
 const { books: oldBooks } = require("../data/db.json");
 const { Book, Author } = require("../models");
 
-const filterBooksBy = (property, value) => {
-  return oldBooks.filter(b => b[property] === value);
-};
-
 const verifyToken = (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization) {
@@ -32,7 +28,10 @@ router
       });
       res.json(books);
     } else if (author) {
-      res.json(filterBooksBy("author", author));
+      const books = await Book.findAll({
+        include: [{ model: Author, where: { name: author } }]
+      });
+      res.json(books);
     } else {
       const books = await Book.findAll({ include: [Author] });
       res.json(books);
