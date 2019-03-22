@@ -117,9 +117,9 @@ describe("Books", () => {
         .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
         .expect(201)
         .then(res => {
-          const book = res.body
-          expect(book.title).toEqual("The Handmaid's Tale")
-          expect(book.author.name).toEqual("Margaret Atwood")
+          const book = res.body;
+          expect(book.title).toEqual("The Handmaid's Tale");
+          expect(book.author.name).toEqual("Margaret Atwood");
         });
     });
   });
@@ -135,10 +135,29 @@ describe("Books", () => {
           author: "Aldous Huxley"
         })
         .expect(202)
-        .expect({
+        .then(res => {
+          const book = res.body;
+          expect(book.id).toEqual(5);
+          expect(book.title).toEqual("The Perennial Philosophy");
+          expect(book.author.name).toEqual("Aldous Huxley");
+        });
+    });
+
+    test("successfully edits a book's author", () => {
+      const id = "5";
+      return request(app)
+        .put(route(id))
+        .send({
           id: 5,
-          title: "The Perennial Philosophy",
-          author: "Aldous Huxley"
+          title: "Brave New World",
+          author: "George Orwell"
+        })
+        .expect(202)
+        .then(res => {
+          const book = res.body;
+          expect(book.id).toEqual(5);
+          expect(book.title).toEqual("Brave New World");
+          expect(book.author.name).toEqual("George Orwell");
         });
     });
 

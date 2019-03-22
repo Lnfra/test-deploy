@@ -38,7 +38,7 @@ router
   })
   .post(verifyToken, async (req, res) => {
     const { title, author } = req.body;
-    const foundAuthor = await Author.findOne({ where: {name : author} });
+    const foundAuthor = await Author.findOne({ where: { name: author } });
 
     if (!foundAuthor) {
       const createdBook = await Book.create(
@@ -56,12 +56,26 @@ router
 
 router
   .route("/:id")
-  .put((req, res) => {
-    const book = oldBooks.find(b => b.id === req.params.id);
-    if (book) {
-      res.status(202).json(req.body);
-    } else {
-      res.sendStatus(400);
+  .put(async (req, res) => {
+    try {
+      const book = await Book.findOne({
+        where: { id: req.params.id },
+        include: [Author]
+      });
+      const [foundAuthor] = await Author.findOrCreate({
+        where: { name: req.body.author }
+      });
+      await book.update({ title: req.body.title });
+      await book.setAuthor(foundAuthor);
+
+      const result = await Book.findOne({
+        where: { id: book.id },
+        include: [Author]
+      });
+
+      return res.status(202).json(result);
+    } catch (ex) {
+      return res.sendStatus(400);
     }
   })
   .delete((req, res) => {
