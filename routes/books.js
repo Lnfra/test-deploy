@@ -78,11 +78,15 @@ router
       return res.sendStatus(400);
     }
   })
-  .delete((req, res) => {
-    const book = oldBooks.find(b => b.id === req.params.id);
-    if (book) {
-      res.sendStatus(202);
-    } else {
+  .delete(async (req, res) => {
+    try{
+      const book = await Book.destroy({ where: { id: req.params.id } });
+      if (book) {
+        res.sendStatus(202);
+      } else {
+        res.sendStatus(400);
+      }
+    } catch (err){
       res.sendStatus(400);
     }
   });
