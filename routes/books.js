@@ -1,10 +1,11 @@
 const uuid = require("uuid/v4");
 const express = require("express");
 const router = express.Router();
-const { books } = require("../data/db.json");
+const { books: oldBooks } = require("../data/db.json");
+const { Book, Author } = require("../models");
 
 const filterBooksBy = (property, value) => {
-  return books.filter(b => b[property] === value);
+  return oldBooks.filter(b => b[property] === value);
 };
 
 const verifyToken = (req, res, next) => {
@@ -22,14 +23,18 @@ const verifyToken = (req, res, next) => {
 
 router
   .route("/")
-  .get((req, res) => {
+  .get(async (req, res) => {
     const { author, title } = req.query;
-
     if (title) {
-      res.json(filterBooksBy("title", title));
+      const books = await Book.findAll({
+        where: { title: title },
+        include: [Author]
+      });
+      res.json(books);
     } else if (author) {
       res.json(filterBooksBy("author", author));
     } else {
+      const books = await Book.findAll({ include: [Author] });
       res.json(books);
     }
   })
@@ -42,7 +47,7 @@ router
 router
   .route("/:id")
   .put((req, res) => {
-    const book = books.find(b => b.id === req.params.id);
+    const book = oldBooks.find(b => b.id === req.params.id);
     if (book) {
       res.status(202).json(req.body);
     } else {
@@ -50,7 +55,7 @@ router
     }
   })
   .delete((req, res) => {
-    const book = books.find(b => b.id === req.params.id);
+    const book = oldBooks.find(b => b.id === req.params.id);
     if (book) {
       res.sendStatus(202);
     } else {
