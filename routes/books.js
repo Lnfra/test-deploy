@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { books: oldBooks } = require("../data/db.json");
-const { Book, Author } = require("../models");
+const { Book, Author, sequelize } = require("../models");
 
 const verifyToken = (req, res, next) => {
   const { authorization } = req.headers;
@@ -37,21 +36,30 @@ router
     }
   })
   .post(verifyToken, async (req, res) => {
-    const { title, author } = req.body;
-    const foundAuthor = await Author.findOne({ where: { name: author } });
-
-    if (!foundAuthor) {
-      const createdBook = await Book.create(
-        { title, author: { name: author } },
-        { include: [Author] }
-      );
-      return res.status(201).json(createdBook);
+    try {
+      await sequelize.transaction(async t => {
+        const [foundAuthor] = await Author.findOrCreate({
+          where: { name: req.body.author },
+          transaction: t
+        });
+        const newBook = await Book.create(
+          { title: req.body.title },
+          { transaction: t }
+        );
+        await newBook.setAuthor(foundAuthor, {transaction: t});
+        const newBookWithAuthor = await Book.findOne({
+          where: { id: newBook.id },
+          include: [Author],
+          transaction: t
+        });
+        res.status(201).json(newBookWithAuthor);
+      });
+    } catch (ex) {
+      console.log(ex.message);
+      res.status(400).json({
+        err: `Author with name = [${req.body.author}] doesn\'t exist.`
+      });
     }
-    const createdBook = await Book.create(
-      { title, authorId: foundAuthor.id },
-      { include: [Author] }
-    );
-    return res.status(201).json(createdBook);
   });
 
 router
@@ -79,14 +87,14 @@ router
     }
   })
   .delete(async (req, res) => {
-    try{
+    try {
       const book = await Book.destroy({ where: { id: req.params.id } });
       if (book) {
         res.sendStatus(202);
       } else {
         res.sendStatus(400);
       }
-    } catch (err){
+    } catch (err) {
       res.sendStatus(400);
     }
   });
